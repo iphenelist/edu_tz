@@ -23,6 +23,10 @@ def create_sales_invoice(doc):
         customer = frappe.get_value("Student", doc.party, "customer")
         if not customer:
             frappe.throw(_("Please set Customer in Student record"))
+        if not frappe.db.exists("Customer", customer):
+            frappe.throw(
+                _("Customer {0} linked to Student {1} does not exist").format(customer, doc.party)
+            )
         cost_center = frappe.get_value("Company", doc.company, "cost_center")
         sales_invoice = frappe.new_doc("Sales Invoice")
         sales_invoice.customer = customer
