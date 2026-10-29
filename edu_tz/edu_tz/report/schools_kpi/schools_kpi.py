@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import Count, Sum
 from frappe.utils import cstr
 
 
@@ -49,18 +50,21 @@ def execute(filters):
 		group_by="program",
 	)
 
-	room_details = frappe.db.sql(
-		"""
-		SELECT p.name AS program, SUM(r.seating_capacity) AS total_students,
-            COUNT(r.room_name) AS total_rooms,
-            COUNT(r.seating_capacity) AS no_of_room_used
-		FROM `tabRoom` r
-		INNER JOIN `tabProgram` p ON r.edu_tz_program = p.name
-		WHERE p.company = %(company)s
-		GROUP BY p.name
-	""",
-		filters,
-		as_dict=1,
+	room = frappe.qb.DocType("Room")
+	program = frappe.qb.DocType("Program")
+	room_details = (
+		frappe.qb.from_(room)
+		.inner_join(program)
+		.on(room.edu_tz_program == program.name)
+		.select(
+			program.name.as_("program"),
+			Sum(room.seating_capacity).as_("total_students"),
+			Count(room.room_name).as_("total_rooms"),
+			Count(room.seating_capacity).as_("no_of_room_used"),
+		)
+		.where(program.company == filters.get("company"))
+		.groupby(program.name)
+		.run(as_dict=True)
 	)
 
 	for enroll in enrollment_details:

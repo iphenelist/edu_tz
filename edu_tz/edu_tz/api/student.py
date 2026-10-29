@@ -30,5 +30,5 @@ def create_customer(doc):
 	).insert(ignore_permissions=True, ignore_mandatory=True)
 
 	frappe.db.set_value("Student", doc.name, "customer", customer.name)
-	frappe.msgprint(_("Customer {customer.name} is created."), alert=True)
+	frappe.msgprint(_("Customer {0} is created.").format(customer.name), alert=True)
 	return customer.name

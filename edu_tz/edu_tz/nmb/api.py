@@ -13,6 +13,7 @@ import requests
 from csf_tz.csf_tz.doctype.csf_api_response_log.csf_api_response_log import add_log
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 from frappe import _
+from frappe.query_builder.functions import Coalesce, IfNull, Max, Sum
 from frappe.utils import cint, flt, get_host_name
 from frappe.utils.background_jobs import enqueue
 from frappe.utils.password import get_decrypted_password
@@ -237,18 +238,17 @@ def auto_approve_student_applicant(fee_doc, nmb_doc):
 		return
 
 	# the callback being processed may not be committed yet, so add it separately; count each receipt once
-	previous = frappe.db.sql(
-		"""
-		select coalesce(sum(amount), 0)
-		from (
-			select max(amount) as amount
-			from `tabNMB Callback`
-			where reference = %(reference)s and ifnull(receipt, '') != %(receipt)s
-			group by receipt
-		) as receipts
-		""",
-		{"reference": nmb_doc.reference, "receipt": nmb_doc.receipt or ""},
-	)[0][0]
+	callback = frappe.qb.DocType("NMB Callback")
+	receipts = (
+		frappe.qb.from_(callback)
+		.select(Max(callback.amount).as_("amount"))
+		.where(
+			(callback.reference == nmb_doc.reference)
+			& (IfNull(callback.receipt, "") != (nmb_doc.receipt or ""))
+		)
+		.groupby(callback.receipt)
+	).as_("receipts")
+	previous = frappe.qb.from_(receipts).select(Coalesce(Sum(receipts.amount), 0)).run()[0][0]
 	total_paid = flt(previous) + nmb_amount
 	fully_paid = total_paid >= flt(fee_doc.grand_total)
 

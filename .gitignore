@@ -6,3 +6,5 @@ tags
 edu_tz/docs/current
 # cloned by the frappe-semgrep pre-commit hook
 frappe-semgrep-rules/
+node_modules/
+.ruff_cache

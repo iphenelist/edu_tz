@@ -1,0 +1,19 @@
+{
+ "app": "edu_tz",
+ "creation": "2026-10-29 11:42:41.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "App",
+ "idx": 0,
+ "label": "Edu Tz",
+ "link": "/desk/edu-tz/student-applicant-fees",
+ "link_type": "External",
+ "logo_url": "/assets/edu_tz/images/edu_tz-logo.svg",
+ "modified": "2026-10-29 11:42:41.000000",
+ "modified_by": "Administrator",
+ "name": "Edu Tz",
+ "owner": "Administrator",
+ "roles": [],
+ "standard": 1
+}

@@ -19,7 +19,7 @@ class StudentApplicantFees(Document):
 		self.db_set("callback_token", self.callback_token)
 		series = frappe.get_value("Company", self.company, "nmb_series") or ""
 		if not series:
-			frappe.throw(_(f"Please set NMB User Series in Company {self.company}"))
+			frappe.throw(_("Please set NMB User Series in Company {0}").format(self.company))
 		reference = str(series) + "R" + str(self.name)
 		if not self.abbr:
 			self.abbr = frappe.get_value("Company", self.company, "abbr") or ""

@@ -2,7 +2,7 @@
 # See license.txt
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from edu_tz.edu_tz.nmb.api import get_callback_url, get_fee_info
 
@@ -10,7 +10,7 @@ from edu_tz.edu_tz.nmb.api import get_callback_url, get_fee_info
 test_ignore = ["Payment Entry"]
 
 
-class TestNMBCallback(FrappeTestCase):
+class TestNMBCallback(IntegrationTestCase):
 	def test_callback_url_points_to_edu_tz(self):
 		url = get_callback_url("abc123")
 		self.assertTrue(url.endswith("/api/method/edu_tz.edu_tz.nmb.api.receive_callback?token=abc123"))

@@ -1,7 +1,7 @@
 """Guards the move of the education and NMB features from csf_tz into edu_tz."""
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from edu_tz.edu_tz.overrides.program_enrollment import get_fee_schedule
 from edu_tz.patches.custom_fields import create_custom_fields
@@ -38,7 +38,7 @@ PROPERTY_SETTERS = (
 )
 
 
-class TestEducationMove(FrappeTestCase):
+class TestEducationMove(IntegrationTestCase):
 	def test_moved_doctypes_belong_to_edu_tz(self):
 		for doctype in MOVED_DOCTYPES:
 			self.assertEqual(frappe.db.get_value("DocType", doctype, "module"), "Edu Tz")

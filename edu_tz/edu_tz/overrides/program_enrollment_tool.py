@@ -8,7 +8,7 @@ from frappe import _
 ENQUEUE_THRESHOLD = 30
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def enroll_all_students(self: Any):
 	"""Enqueues the enrollment for large batches, since the standard tool times out on many students.
 

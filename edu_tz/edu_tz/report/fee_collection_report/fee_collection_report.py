@@ -1,9 +1,12 @@
 import frappe
 from frappe import _
+from frappe.query_builder import Criterion
+from frappe.query_builder.functions import MonthName, Sum, Year
 
 
 def execute(filters=None):
 	columns = get_columns(filters)
+	data = []
 
 	if filters.summary_based_on_month:
 		month_summary, chart = get_summary_based_on_month(filters)
@@ -21,20 +24,21 @@ def execute(filters=None):
 	return columns, data, chart
 
 
-def get_filter_condtions(filters):
-	conditions = ""
+def get_filter_condtions(filters, fe, p_en, sg=None):
+	conditions = []
 	if filters.get("company"):
-		conditions += " AND fe.company = %(company)s "
+		conditions.append(fe.company == filters.company)
 	if filters.get("academic_year"):
-		conditions += " AND fe.academic_year = %(academic_year)s "
-		conditions += " AND p_en.academic_year = %(academic_year)s "
-		conditions += " AND sg.academic_year = %(academic_year)s "
-	if filters.get("program"):
-		conditions += " AND fe.program = %(program)s "
-		conditions += " AND p_en.program = %(program)s "
-		conditions += " AND sg.program = %(program)s "
+		conditions.append(fe.academic_year == filters.academic_year)
+		conditions.append(p_en.academic_year == filters.academic_year)
+		if sg:
+			conditions.append(sg.academic_year == filters.academic_year)
+	if sg and filters.get("program"):
+		conditions.append(fe.program == filters.program)
+		conditions.append(p_en.program == filters.program)
+		conditions.append(sg.program == filters.program)
 
-	return conditions
+	return Criterion.all(conditions)
 
 
 def get_columns(filters):
@@ -218,24 +222,34 @@ def get_fee_details(filters):
 	student_list = []
 	student_details = []
 
-	conditions = get_filter_condtions(filters)
+	fe = frappe.qb.DocType("Fees")
+	p_en = frappe.qb.DocType("Program Enrollment")
+	sgs = frappe.qb.DocType("Student Group Student")
+	sg = frappe.qb.DocType("Student Group")
 
-	# conditions only add %(name)s placeholders, values are bound via filters
-	fee_details = frappe.db.sql(  # nosemgrep
-		f"""
-		SELECT fe.due_date, fe.student, fe.student_name, fe.program,
-			fe.grand_total, fe.outstanding_amount, p_en.student_category,
-			sg.academic_year, sgs.parent
-		FROM `tabFees` fe
-			INNER JOIN `tabProgram Enrollment` p_en ON fe.student = p_en.student
-			LEFT JOIN `tabStudent Group Student` sgs ON sgs.student = fe.student AND sgs.active = 1
-			LEFT JOIN `tabStudent Group` sg ON sgs.parent = sg.name AND sg.disabled = 0
-		WHERE fe.docstatus = 1
-		AND p_en.docstatus = 1 {conditions}
-		ORDER BY fe.due_date asc, fe.student asc
-	""",
-		filters,
-		as_dict=1,
+	fee_details = (
+		frappe.qb.from_(fe)
+		.inner_join(p_en)
+		.on(fe.student == p_en.student)
+		.left_join(sgs)
+		.on((sgs.student == fe.student) & (sgs.active == 1))
+		.left_join(sg)
+		.on((sgs.parent == sg.name) & (sg.disabled == 0))
+		.select(
+			fe.due_date,
+			fe.student,
+			fe.student_name,
+			fe.program,
+			fe.grand_total,
+			fe.outstanding_amount,
+			p_en.student_category,
+			sg.academic_year,
+			sgs.parent,
+		)
+		.where((fe.docstatus == 1) & (p_en.docstatus == 1) & get_filter_condtions(filters, fe, p_en, sg))
+		.orderby(fe.due_date)
+		.orderby(fe.student)
+		.run(as_dict=True)
 	)
 
 	for student in fee_details:
@@ -269,26 +283,26 @@ def get_summary_based_on_month(filters):
 		chart = {}
 		summary_data = []
 
-		conditions = ""
-		if filters.get("company"):
-			conditions += " AND fe.company = %(company)s "
-		if filters.get("academic_year"):
-			conditions += " AND fe.academic_year = %(academic_year)s "
-			conditions += " AND p_en.academic_year = %(academic_year)s "
+		fe = frappe.qb.DocType("Fees")
+		p_en = frappe.qb.DocType("Program Enrollment")
 
-		# conditions only add %(name)s placeholders, values are bound via filters
-		fee_details = frappe.db.sql(  # nosemgrep
-			f"""
-			SELECT YEAR(fe.due_date) as year, MONTHNAME(fe.due_date) AS month, fe.program, SUM(fe.grand_total) AS grand_total,
-				SUM(fe.outstanding_amount) AS outstanding_amount
-			FROM `tabFees` fe
-			INNER JOIN `tabProgram Enrollment` p_en ON fe.student = p_en.student AND fe.program = p_en.program
-			WHERE fe.docstatus = 1 AND p_en.docstatus = 1 {conditions}
-			GROUP BY MONTHNAME(fe.due_date), fe.program
-			ORDER BY YEAR(fe.due_date), MONTHNAME(fe.due_date), fe.program
-			""",
-			filters,
-			as_dict=1,
+		fee_details = (
+			frappe.qb.from_(fe)
+			.inner_join(p_en)
+			.on((fe.student == p_en.student) & (fe.program == p_en.program))
+			.select(
+				Year(fe.due_date).as_("year"),
+				MonthName(fe.due_date).as_("month"),
+				fe.program,
+				Sum(fe.grand_total).as_("grand_total"),
+				Sum(fe.outstanding_amount).as_("outstanding_amount"),
+			)
+			.where((fe.docstatus == 1) & (p_en.docstatus == 1) & get_filter_condtions(filters, fe, p_en))
+			.groupby(MonthName(fe.due_date), fe.program)
+			.orderby(Year(fe.due_date))
+			.orderby(MonthName(fe.due_date))
+			.orderby(fe.program)
+			.run(as_dict=True)
 		)
 
 		for fee in fee_details:

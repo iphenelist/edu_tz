@@ -1,0 +1,23 @@
+{
+ "app": "edu_tz",
+ "creation": "2026-10-29 11:42:41.000000",
+ "docstatus": 0,
+ "doctype": "Dock",
+ "idx": 0,
+ "items": [
+  {
+   "added": 0,
+   "hidden": 0,
+   "icon": "graduation-cap",
+   "link_to": "Edu Tz",
+   "link_type": "Sidebar",
+   "title": "Edu Tz"
+  }
+ ],
+ "modified": "2026-10-29 11:42:41.000000",
+ "modified_by": "Administrator",
+ "name": "edu_tz",
+ "owner": "Administrator",
+ "standard": 1,
+ "user": ""
+}

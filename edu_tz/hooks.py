@@ -8,6 +8,18 @@ app_email = "info@aakvatech.com"
 app_license = "MIT"
 required_apps = ["erpnext", "education", "csf_tz"]
 
+app_logo_url = "/assets/edu_tz/images/edu_tz-logo.svg"
+
+# No "route": a bare `/desk/<module>` is not a page in v16, so the apps screen lands on the
+# first entry of the app's Dock (the Edu Tz sidebar) instead.
+add_to_apps_screen = [
+	{
+		"name": "edu_tz",
+		"logo": app_logo_url,
+		"title": "Edu Tz",
+	}
+]
+
 # csf_tz owns the CSF API Response Log used for NMB request logging and the
 # Company fields the Education section is inserted after.
 
